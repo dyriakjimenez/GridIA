@@ -1,0 +1,32 @@
+name: Run Neon Database Migrations
+
+on:
+  push:
+    paths:
+      - 'db/migrations/**'
+    branches:
+      - main
+  workflow_dispatch: # Permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Ejecutar migraciones SQL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Error: DATABASE_URL no está configurada en los Secrets del repositorio."
+            exit 1
+          fi
+          
+          # GitHub Actions' ubuntu-latest runner incluye el cliente postgresql-client preinstalado
+          for f in db/migrations/*.sql; do
+            echo "Ejecutando $f..."
+            psql "$DATABASE_URL" -f "$f"
+          done
+          echo "Migraciones completadas exitosamente."
